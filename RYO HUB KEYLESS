@@ -1,0 +1,47 @@
+local Players = game:GetService("Players")
+local StarterGui = game:GetService("StarterGui")
+local LocalPlayer = Players.LocalPlayer
+
+if not LocalPlayer then return end
+
+local function notify(title, text, duration)
+    pcall(function()
+        StarterGui:SetCore("SendNotification", {
+            Title = title,
+            Text = text,
+            Duration = duration or 5
+        })
+    end)
+end
+
+local nights99Id = 79546208627805
+local gag2PlaceId = 77085202503540
+local gag2GameId = 10200395747
+local keyboardId = 95082159892680
+local SellId = 79268393072444
+local nightsinId = 126509999114328
+local Mm2Id = 142823291
+
+notify("Loading", "Loading script...", 3)
+
+if game.PlaceId == nights99Id or game.GameId == nights99Id then
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/kyruxv1/KYO-SCRIPTS-FULL/refs/heads/main/99NightsInTheForest.txt"))()
+
+elseif game.PlaceId == gag2PlaceId or game.GameId == gag2GameId then
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/kyruxv1/KYO-SCRIPTS-FULL/refs/heads/main/Growagarden2.txt"))()
+
+elseif game.PlaceId == keyboardId or game.GameId == keyboardId then
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/kyruxv1/KYO-SCRIPTS-FULL/refs/heads/main/%2B1%20speed%20keyboard%20escape.txt"))()
+
+elseif game.PlaceId == SellId or game.GameId == SellId then
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/kyruxv1/kyo-scripts/refs/heads/main/Sell-lemons.txt"))()
+
+elseif game.PlaceId == Mm2Id or game.GameId == Mm2Id then
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/kyruxv1/kyo-scripts/refs/heads/main/Murder-mystery-2.txt"))()
+
+elseif game.PlaceId == nightsinId or game.GameId == nightsinId then
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/kyruxv1/KYO-SCRIPTS-FULL/refs/heads/main/99NightsInTheForest.txt"))()
+
+else
+    LocalPlayer:Kick("Kyo Hub | game not supported. Your Place ID is: " .. game.PlaceId .. " and Game ID is: " .. game.GameId)
+end
