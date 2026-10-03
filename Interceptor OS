@@ -1,0 +1,469 @@
+-- =========================================================
+-- INTERCEPTOR OS: Advanced Payload Dumper & Webhook Catcher
+-- (Added Clear Logs Button - Core Logic Untouched)
+-- =========================================================
+
+local CoreGui = game:GetService("CoreGui")
+local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
+
+-- Clean up any existing instances
+if CoreGui:FindFirstChild("WorkspacePayloadDumper") then
+    CoreGui.WorkspacePayloadDumper:Destroy()
+end
+
+-- ==========================================
+-- Workspace Storage Management (UNTOUCHED)
+-- ==========================================
+local dumpFolder = "PayloadDumps"
+local webhookLogFile = dumpFolder .. "/Intercepted_Webhooks.txt"
+
+if isfolder and not isfolder(dumpFolder) then
+    pcall(makefolder, dumpFolder)
+end
+
+local function writeToWorkspace(filename, content)
+    if writefile then
+        local path = dumpFolder .. "/" .. filename
+        local ok, err = pcall(writefile, path, content)
+        return ok, path or err
+    end
+    return false, "writefile not supported"
+end
+
+local function logWebhookToFile(url)
+    if appendfile then
+        pcall(appendfile, webhookLogFile, url .. "\n")
+    elseif writefile then
+        pcall(writefile, dumpFolder .. "/Webhook_" .. tostring(math.floor(os.clock() * 1000)) .. ".txt", url)
+    end
+end
+
+-- ==========================================
+-- Interface Setup (UPGRADED WITH CLEAR BUTTON)
+-- ==========================================
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "WorkspacePayloadDumper"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+
+pcall(function() ScreenGui.Parent = CoreGui end)
+if not ScreenGui.Parent then
+    ScreenGui.Parent = game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui")
+end
+
+-- Sleek Terminal/IDE Main Frame
+local MainFrame = Instance.new("Frame")
+MainFrame.Name = "MainFrame"
+MainFrame.Size = UDim2.new(0.5, 0, 0.58, 0)
+MainFrame.Position = UDim2.new(0.25, 0, 0.2, 0)
+MainFrame.BackgroundColor3 = Color3.fromRGB(10, 11, 14) 
+MainFrame.BorderSizePixel = 0
+MainFrame.Active = true
+MainFrame.ClipsDescendants = true
+MainFrame.Parent = ScreenGui
+
+local MainGradient = Instance.new("UIGradient")
+MainGradient.Color = ColorSequence.new{
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(18, 20, 26)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(10, 11, 14))
+}
+MainGradient.Rotation = 90
+MainGradient.Parent = MainFrame
+
+local Constraint = Instance.new("UISizeConstraint")
+Constraint.MinSize = Vector2.new(380, 300)
+Constraint.MaxSize = Vector2.new(720, 550)
+Constraint.Parent = MainFrame
+
+local MainCorner = Instance.new("UICorner")
+MainCorner.CornerRadius = UDim.new(0, 8)
+MainCorner.Parent = MainFrame
+
+local MainStroke = Instance.new("UIStroke")
+MainStroke.Color = Color3.fromRGB(35, 40, 50)
+MainStroke.Thickness = 1
+MainStroke.Parent = MainFrame
+
+-- Modern Header
+local Topbar = Instance.new("Frame")
+Topbar.Size = UDim2.new(1, 0, 0, 40)
+Topbar.BackgroundColor3 = Color3.fromRGB(15, 17, 22)
+Topbar.BorderSizePixel = 0
+Topbar.Parent = MainFrame
+
+local TopbarCorner = Instance.new("UICorner")
+TopbarCorner.CornerRadius = UDim.new(0, 8)
+TopbarCorner.Parent = Topbar
+
+local TopbarBottomSquare = Instance.new("Frame")
+TopbarBottomSquare.Size = UDim2.new(1, 0, 0, 8)
+TopbarBottomSquare.Position = UDim2.new(0, 0, 1, -8)
+TopbarBottomSquare.BackgroundColor3 = Color3.fromRGB(15, 17, 22)
+TopbarBottomSquare.BorderSizePixel = 0
+TopbarBottomSquare.Parent = Topbar
+
+-- Glowing Accent Line under Topbar
+local AccentLine = Instance.new("Frame")
+AccentLine.Size = UDim2.new(1, 0, 0, 1)
+AccentLine.Position = UDim2.new(0, 0, 1, -1)
+AccentLine.BackgroundColor3 = Color3.fromRGB(0, 229, 255)
+AccentLine.BorderSizePixel = 0
+AccentLine.Parent = Topbar
+
+local AccentGradient = Instance.new("UIGradient")
+AccentGradient.Color = ColorSequence.new{
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(0, 229, 255)),
+    ColorSequenceKeypoint.new(0.5, Color3.fromRGB(155, 89, 182)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 60, 60))
+}
+AccentGradient.Parent = AccentLine
+
+local Title = Instance.new("TextLabel")
+Title.Text = "🛡️ INTERCEPTOR // OS"
+Title.Font = Enum.Font.GothamBlack
+Title.TextSize = 12
+Title.TextColor3 = Color3.fromRGB(240, 245, 255)
+Title.TextXAlignment = Enum.TextXAlignment.Left
+Title.Size = UDim2.new(0.5, 0, 1, 0)
+Title.Position = UDim2.new(0, 16, 0, 0)
+Title.BackgroundTransparency = 1
+Title.Parent = Topbar
+
+-- Close Button
+local CloseBtn = Instance.new("TextButton")
+CloseBtn.Text = "✕"
+CloseBtn.Font = Enum.Font.GothamBold
+CloseBtn.TextSize = 12
+CloseBtn.TextColor3 = Color3.fromRGB(120, 130, 150)
+CloseBtn.Size = UDim2.new(0, 26, 0, 26)
+CloseBtn.Position = UDim2.new(1, -34, 0.5, -13)
+CloseBtn.BackgroundColor3 = Color3.fromRGB(22, 25, 33)
+CloseBtn.BorderSizePixel = 0
+CloseBtn.AutoButtonColor = true
+CloseBtn.Parent = Topbar
+
+local CloseCorner = Instance.new("UICorner")
+CloseCorner.CornerRadius = UDim.new(0, 6)
+CloseCorner.Parent = CloseBtn
+
+CloseBtn.MouseButton1Click:Connect(function() ScreenGui:Destroy() end)
+
+-- Clear Logs Button
+local ClearBtn = Instance.new("TextButton")
+ClearBtn.Text = "CLEAR"
+ClearBtn.Font = Enum.Font.GothamBold
+ClearBtn.TextSize = 10
+ClearBtn.TextColor3 = Color3.fromRGB(150, 160, 180)
+ClearBtn.Size = UDim2.new(0, 54, 0, 26)
+ClearBtn.Position = UDim2.new(1, -94, 0.5, -13)
+ClearBtn.BackgroundColor3 = Color3.fromRGB(22, 25, 33)
+ClearBtn.BorderSizePixel = 0
+ClearBtn.AutoButtonColor = true
+ClearBtn.Parent = Topbar
+
+local ClearCorner = Instance.new("UICorner")
+ClearCorner.CornerRadius = UDim.new(0, 6)
+ClearCorner.Parent = ClearBtn
+
+-- Advanced Scroll Area
+local ScrollList = Instance.new("ScrollingFrame")
+ScrollList.Size = UDim2.new(1, -24, 1, -56)
+ScrollList.Position = UDim2.new(0, 12, 0, 48)
+ScrollList.BackgroundTransparency = 1
+ScrollList.BorderSizePixel = 0
+ScrollList.ScrollBarThickness = 3
+ScrollList.ScrollBarImageColor3 = Color3.fromRGB(60, 70, 90)
+ScrollList.CanvasSize = UDim2.new(0, 0, 0, 0)
+ScrollList.Parent = MainFrame
+
+local ListLayout = Instance.new("UIListLayout")
+ListLayout.Padding = UDim.new(0, 10)
+ListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+ListLayout.Parent = ScrollList
+
+ListLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+    ScrollList.CanvasSize = UDim2.new(0, 0, 0, ListLayout.AbsoluteContentSize.Y + 10)
+end)
+
+local EmptyNotice = Instance.new("TextLabel")
+EmptyNotice.Text = "> SYSTEM ACTIVE\n> LISTENING FOR OUTBOUND WEBHOOKS & INCOMING PAYLOADS...\n> AWAITING TRAFFIC"
+EmptyNotice.Font = Enum.Font.Code
+EmptyNotice.TextSize = 12
+EmptyNotice.TextColor3 = Color3.fromRGB(70, 85, 110)
+EmptyNotice.TextXAlignment = Enum.TextXAlignment.Left
+EmptyNotice.Size = UDim2.new(1, -10, 0, 80)
+EmptyNotice.Position = UDim2.new(0, 10, 0, 10)
+EmptyNotice.BackgroundTransparency = 1
+EmptyNotice.Parent = ScrollList
+
+-- Clear Logs Logic
+ClearBtn.MouseButton1Click:Connect(function()
+    -- Animate button click
+    TweenService:Create(ClearBtn, TweenInfo.new(0.1), {BackgroundColor3 = Color3.fromRGB(40, 45, 55)}):Play()
+    task.wait(0.1)
+    TweenService:Create(ClearBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(22, 25, 33)}):Play()
+    
+    -- Destroy all log cards
+    for _, child in ipairs(ScrollList:GetChildren()) do
+        if child:IsA("Frame") and child.Name == "LogCard" then
+            child:Destroy()
+        end
+    end
+    -- Bring back the waiting text
+    EmptyNotice.Visible = true
+end)
+
+-- ==========================================
+-- Card Creation System (UI)
+-- ==========================================
+local function addCard(item)
+    if EmptyNotice.Parent then EmptyNotice.Visible = false end
+
+    local isWebhook = (item.type == "Webhook")
+    
+    local Card = Instance.new("Frame")
+    Card.Name = "LogCard" -- Tagged so the clear button can find it
+    Card.Size = UDim2.new(1, 0, 0, 68)
+    Card.BackgroundColor3 = Color3.fromRGB(16, 18, 24)
+    Card.BorderSizePixel = 0
+    Card.ClipsDescendants = true
+    Card.Parent = ScrollList
+
+    local CardCorner = Instance.new("UICorner")
+    CardCorner.CornerRadius = UDim.new(0, 6)
+    CardCorner.Parent = Card
+
+    local CardStroke = Instance.new("UIStroke")
+    CardStroke.Color = Color3.fromRGB(30, 35, 45)
+    CardStroke.Thickness = 1
+    CardStroke.Parent = Card
+
+    -- Side Indicator Line
+    local StatusLine = Instance.new("Frame")
+    StatusLine.Size = UDim2.new(0, 3, 1, 0)
+    StatusLine.BackgroundColor3 = isWebhook and Color3.fromRGB(255, 50, 65) or Color3.fromRGB(0, 229, 255)
+    StatusLine.BorderSizePixel = 0
+    StatusLine.Parent = Card
+
+    local InfoBox = Instance.new("Frame")
+    InfoBox.Size = UDim2.new(1, -120, 1, 0)
+    InfoBox.Position = UDim2.new(0, 16, 0, 0)
+    InfoBox.BackgroundTransparency = 1
+    InfoBox.Parent = Card
+
+    local Name = Instance.new("TextLabel")
+    Name.Text = item.title
+    Name.Font = Enum.Font.Code
+    Name.TextSize = 13
+    Name.TextColor3 = isWebhook and Color3.fromRGB(255, 140, 140) or Color3.fromRGB(230, 240, 255)
+    Name.TextXAlignment = Enum.TextXAlignment.Left
+    Name.Size = UDim2.new(1, 0, 0, 22)
+    Name.Position = UDim2.new(0, 0, 0, 12)
+    Name.BackgroundTransparency = 1
+    Name.TextTruncate = Enum.TextTruncate.AtEnd
+    Name.Parent = InfoBox
+
+    local Meta = Instance.new("TextLabel")
+    Meta.Text = string.format("[%s]  |  %s  |  %s", item.source, item.size_or_status, item.time)
+    Meta.Font = Enum.Font.Gotham
+    Meta.TextSize = 10
+    Meta.TextColor3 = Color3.fromRGB(100, 115, 140)
+    Meta.TextXAlignment = Enum.TextXAlignment.Left
+    Meta.Size = UDim2.new(1, 0, 0, 16)
+    Meta.Position = UDim2.new(0, 0, 0, 36)
+    Meta.BackgroundTransparency = 1
+    Meta.Parent = InfoBox
+
+    local CopyBtn = Instance.new("TextButton")
+    CopyBtn.Text = isWebhook and "COPY URL" or "COPY SRC"
+    CopyBtn.Font = Enum.Font.GothamBold
+    CopyBtn.TextSize = 10
+    CopyBtn.TextColor3 = isWebhook and Color3.fromRGB(255, 200, 200) or Color3.fromRGB(200, 230, 255)
+    CopyBtn.Size = UDim2.new(0, 85, 0, 32)
+    CopyBtn.Position = UDim2.new(1, -100, 0.5, -16)
+    CopyBtn.BackgroundColor3 = isWebhook and Color3.fromRGB(45, 20, 25) or Color3.fromRGB(20, 35, 60)
+    CopyBtn.BorderSizePixel = 0
+    CopyBtn.AutoButtonColor = true
+    CopyBtn.Parent = Card
+
+    local BtnCorner = Instance.new("UICorner")
+    BtnCorner.CornerRadius = UDim.new(0, 4)
+    BtnCorner.Parent = CopyBtn
+
+    local BtnStroke = Instance.new("UIStroke")
+    BtnStroke.Color = isWebhook and Color3.fromRGB(120, 40, 40) or Color3.fromRGB(40, 80, 150)
+    BtnStroke.Thickness = 1
+    BtnStroke.Parent = CopyBtn
+
+    CopyBtn.MouseButton1Click:Connect(function()
+        local didCopy = false
+        local copyData = isWebhook and item.url or item.content
+
+        if setclipboard then
+            pcall(setclipboard, copyData)
+            didCopy = true
+        elseif toclipboard then
+            pcall(toclipboard, copyData)
+            didCopy = true
+        end
+
+        if didCopy then
+            CopyBtn.Text = "COPIED"
+            CopyBtn.BackgroundColor3 = Color3.fromRGB(25, 60, 35)
+            BtnStroke.Color = Color3.fromRGB(50, 140, 80)
+            CopyBtn.TextColor3 = Color3.fromRGB(180, 255, 200)
+        end
+
+        task.delay(1.5, function()
+            if CopyBtn and CopyBtn.Parent then
+                TweenService:Create(CopyBtn, TweenInfo.new(0.3), {
+                    BackgroundColor3 = isWebhook and Color3.fromRGB(45, 20, 25) or Color3.fromRGB(20, 35, 60)
+                }):Play()
+                BtnStroke.Color = isWebhook and Color3.fromRGB(120, 40, 40) or Color3.fromRGB(40, 80, 150)
+                CopyBtn.TextColor3 = isWebhook and Color3.fromRGB(255, 200, 200) or Color3.fromRGB(200, 230, 255)
+                CopyBtn.Text = isWebhook and "COPY URL" or "COPY SRC"
+            end
+        end)
+    end)
+end
+
+-- ==========================================
+-- Logic Processors (UNTOUCHED)
+-- ==========================================
+local function processWebhook(url, method)
+    logWebhookToFile(url)
+    addCard({
+        type = "Webhook",
+        title = url,
+        source = "Outbound Hook",
+        size_or_status = "BLOCKED (" .. tostring(method) .. ")",
+        time = os.date("%X"),
+        url = url
+    })
+    warn("[Interceptor] Blocked malicious webhook request to: " .. url)
+end
+
+local function processPayload(content, source)
+    if type(content) ~= "string" then return end
+    
+    if string.find(content, "[https://lura.ph/]", 1, true) then return end
+
+    local byteLen = #content
+    local sizeFormat = byteLen > 1024 and string.format("%.1f KB", byteLen / 1024) or string.format("%d B", byteLen)
+    local timestamp = os.date("%X")
+    local filename = string.format("%s_%s.luau", source, tostring(math.floor(os.clock() * 1000)))
+
+    writeToWorkspace(filename, content)
+
+    addCard({
+        type = "Payload",
+        title = filename,
+        source = source,
+        size_or_status = sizeFormat,
+        time = timestamp,
+        content = content
+    })
+end
+
+-- ==========================================
+-- Mobile & PC UI Dragging Logic (UNTOUCHED)
+-- ==========================================
+local dragging = false
+local dragStart, startPos, dragInput
+
+Topbar.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = true
+        dragStart = input.Position
+        startPos = MainFrame.Position
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then dragging = false end
+        end)
+    end
+end)
+
+Topbar.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+        dragInput = input
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if input == dragInput and dragging then
+        local delta = input.Position - dragStart
+        MainFrame.Position = UDim2.new(
+            startPos.X.Scale, startPos.X.Offset + delta.X,
+            startPos.Y.Scale, startPos.Y.Offset + delta.Y
+        )
+    end
+end)
+
+-- ==========================================
+-- Comprehensive Intercept Hooks (UNTOUCHED)
+-- ==========================================
+if hookfunction and getgenv then
+    local env = getgenv()
+
+    if env.loadstring then
+        local oldLoadstring
+        oldLoadstring = hookfunction(env.loadstring, function(chunk, chunkName)
+            if type(chunk) == "string" and #chunk > 1000 and chunkName ~= "=FlowAuthRuntime" then
+                processPayload(chunk, "Compiler")
+            end
+            return oldLoadstring(chunk, chunkName)
+        end)
+    end
+
+    local function createRequestHook(originalFunc, sourceName)
+        local oldReq
+        oldReq = hookfunction(originalFunc, function(options)
+            if type(options) == "table" and type(options.Url) == "string" then
+                local url = string.lower(options.Url)
+                if string.find(url, "discord.com/api/webhooks") or string.find(url, "discordapp.com/api/webhooks") or string.find(url, "webhook.site") then
+                    processWebhook(options.Url, options.Method or "POST")
+                    return {
+                        Success = true,
+                        StatusCode = 200,
+                        StatusMessage = "OK",
+                        Body = '{"message": "Blocked by Interceptor"}',
+                        Headers = {}
+                    }
+                end
+            end
+
+            local res = oldReq(options)
+
+            if type(res) == "table" and type(res.Body) == "string" and #res.Body > 1000 then
+                if not string.find(res.Body, "<!DOCTYPE html>") then
+                    processPayload(res.Body, "Network (" .. sourceName .. ")")
+                end
+            end
+            
+            return res
+        end)
+    end
+
+    local globalAliases = {
+        "request", "http_request", "httprequest", "httpRequest"
+    }
+
+    local tableAliases = {
+        "syn", "fluxus", "http"
+    }
+
+    for _, alias in ipairs(globalAliases) do
+        if type(env[alias]) == "function" then
+            createRequestHook(env[alias], alias)
+        end
+    end
+
+    for _, tableName in ipairs(tableAliases) do
+        local t = env[tableName]
+        if type(t) == "table" and type(t.request) == "function" then
+            createRequestHook(t.request, tableName .. ".request")
+        end
+    end
+end
+
+print("[Interceptor OS] UI Upgraded. System Active.")
