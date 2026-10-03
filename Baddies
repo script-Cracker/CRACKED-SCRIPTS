@@ -1,0 +1,174 @@
+local players = game:GetService("Players")
+local userinputservice = game:GetService("UserInputService")
+local replicatedstorage = game:GetService("ReplicatedStorage")
+local coregui = game:GetService("CoreGui")
+
+local modules = replicatedstorage:WaitForChild("Modules"):WaitForChild("Net")
+local resledgehammer = modules:FindFirstChild("RE/sledgehammer")
+local resprayremote = modules:FindFirstChild("RE/sprayRemote")
+local repinkstopsignalhit = modules:FindFirstChild("RE/pinkStopSignalHit")
+local restickactivated = modules:FindFirstChild("RE/StickActivated")
+local punchevent = replicatedstorage:FindFirstChild("PUNCHEVENT")
+
+local value3 = Instance.new("ScreenGui", coregui)
+value3.Name = "SignalComboGui"
+value3.ResetOnSpawn = false
+
+local value4 = Instance.new("Frame", value3)
+-- AUTO-RESIZE: Use Scale (12% of screen size) instead of strict pixels
+value4.Size = UDim2.new(0.12, 0, 0.12, 0)
+value4.Position = UDim2.new(0.5, 0, 0.5, 0)
+value4.AnchorPoint = Vector2.new(0.5, 0.5)
+value4.BackgroundTransparency = 1
+value4.Active = true
+
+-- Forces the GUI to stay a perfect square regardless of monitor/phone aspect ratio
+local aspect = Instance.new("UIAspectRatioConstraint", value4)
+aspect.AspectRatio = 1
+
+-- Prevents the GUI from being impossibly small on phones or massively huge on PC
+local sizeConstraint = Instance.new("UISizeConstraint", value4)
+sizeConstraint.MinSize = Vector2.new(75, 75)
+sizeConstraint.MaxSize = Vector2.new(150, 150)
+
+local value5 = Instance.new("TextButton", value4)
+value5.Size = UDim2.new(1, 0, 1, 0)
+value5.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+value5.Text = "SIGNAL\n[Q]"
+value5.TextColor3 = Color3.new(1, 1, 1)
+value5.Font = Enum.Font.GothamBold
+-- AUTO-RESIZE: Scales the text down dynamically to fit the button
+value5.TextScaled = true 
+Instance.new("UICorner", value5)
+
+-- Adds padding so the scaled text doesn't touch the absolute edges of the square
+local padding = Instance.new("UIPadding", value5)
+padding.PaddingTop = UDim.new(0.2, 0)
+padding.PaddingBottom = UDim.new(0.15, 0)
+padding.PaddingLeft = UDim.new(0.1, 0)
+padding.PaddingRight = UDim.new(0.1, 0)
+
+local value6 = Instance.new("UIStroke", value5)
+value6.Thickness = 3
+
+local dragging = false
+local dragging2 = false
+local inputposition = nil
+local flag = false
+local inputposition2 = nil
+local SignalComboActive = true
+local SignalKeyConnection
+
+-- MOBILE/PC DRAG SUPPORT: Captures both Touch and Mouse inputs
+value5.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        if not flag then
+            dragging = true
+            dragging2 = false
+            inputposition = input.Position
+            inputposition2 = value4.Position
+
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    dragging = false
+                end
+            end)
+        end
+    end
+end)
+
+userinputservice.InputChanged:Connect(function(input)
+    if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+        local delta = input.Position - inputposition
+        -- Slightly higher threshold for mobile dragging vs clicking
+        if math.abs(delta.X) > 4 or math.abs(delta.Y) > 4 then
+            dragging2 = true
+        end
+        value4.Position = UDim2.new(
+            inputposition2.X.Scale, inputposition2.X.Offset + delta.X,
+            inputposition2.Y.Scale, inputposition2.Y.Offset + delta.Y
+        )
+    end
+end)
+
+task.spawn(function()
+    while SignalComboActive and value3.Parent do
+        value6.Color = Color3.fromHSV((tick() % 5) / 5, 0.8, 1)
+        task.wait()
+    end
+end)
+
+local result2 = function()
+    if resledgehammer then resledgehammer:FireServer(1) end
+    if resprayremote then resprayremote:FireServer() end
+    if repinkstopsignalhit then repinkstopsignalhit:FireServer(1) end
+    if restickactivated then restickactivated:FireServer(1) end
+    if punchevent then punchevent:FireServer(1) end
+
+    for _, remote in ipairs(modules:GetChildren()) do
+        if remote:IsA("RemoteEvent") then
+            if remote ~= repinkstopsignalhit and remote ~= restickactivated and remote ~= resledgehammer and remote ~= resprayremote then
+                if string.find(string.lower(remote.Name), "activate") then
+                    pcall(function()
+                        remote:FireServer(1)
+                    end)
+                end
+            end
+        end
+    end
+end
+
+value5.MouseButton1Click:Connect(function()
+    if flag or not dragging2 then
+        result2()
+    end
+end)
+
+-- Kept for PC players
+SignalKeyConnection = userinputservice.InputBegan:Connect(function(input, gameProcessed)
+    if not gameProcessed and input.KeyCode == Enum.KeyCode.Q then
+        result2()
+    end
+end)
+
+local value7 = Instance.new("TextButton", value4)
+-- AUTO-RESIZE: Proportional sizing for the top-right Lock button
+value7.Size = UDim2.new(0.22, 0, 0.22, 0)
+value7.Position = UDim2.new(0.72, -4, 0.05, 0)
+value7.AnchorPoint = Vector2.new(1, 0)
+value7.Text = "L"
+value7.TextColor3 = Color3.new(1, 1, 1)
+value7.Font = Enum.Font.SourceSansBold
+value7.TextScaled = true
+value7.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+value7.ZIndex = 2
+Instance.new("UICorner", value7)
+
+value7.MouseButton1Click:Connect(function()
+    flag = not flag
+    value7.Text = flag and "U" or "L"
+    value7.BackgroundColor3 = flag and Color3.fromRGB(100, 100, 100) or Color3.fromRGB(50, 50, 50)
+    dragging = false
+    dragging2 = false
+end)
+
+local value8 = Instance.new("TextButton", value4)
+-- AUTO-RESIZE: Proportional sizing for the top-right Close button
+value8.Size = UDim2.new(0.22, 0, 0.22, 0)
+value8.Position = UDim2.new(0.95, 0, 0.05, 0)
+value8.AnchorPoint = Vector2.new(1, 0)
+value8.Text = "X"
+value8.TextColor3 = Color3.new(1, 1, 1)
+value8.Font = Enum.Font.SourceSansBold
+value8.TextScaled = true
+value8.BackgroundColor3 = Color3.new(1, 0, 0)
+value8.ZIndex = 2
+Instance.new("UICorner", value8)
+
+value8.MouseButton1Click:Connect(function()
+    SignalComboActive = false
+    if SignalKeyConnection then
+        SignalKeyConnection:Disconnect()
+    end
+    value3:Destroy()
+end)
